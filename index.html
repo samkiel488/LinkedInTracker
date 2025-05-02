@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LinkedIn Rent Payment Tracker</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.css">
 </head>
 <body class="dark-mode">
     <!-- Navigation -->
@@ -16,7 +15,12 @@
             <a href="#" class="nav-link active" data-page="dashboard">Dashboard</a>
             <a href="#" class="nav-link" data-page="clients">Clients</a>
             <a href="#" class="nav-link" data-page="payments">Payments</a>
-            <a href="#" class="nav-link" data-page="calendar">Calendar</a>
+            <a href="#" class="nav-link" data-page="reports">Reports</a>
+            <a href="#" class="nav-link" data-page="settings">Settings</a>
+        </div>
+        <div class="nav-user">
+            <div class="user-avatar" id="userAvatar">A</div>
+            <span id="userName">Admin</span>
         </div>
     </nav>
 
@@ -48,6 +52,25 @@
                         <i>📅</i> Calendar
                     </a>
                 </li>
+                <li class="sidebar-item">
+                    <a href="#" class="sidebar-link" data-page="reports">
+                        <i>📈</i> Reports
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="#" class="sidebar-link" data-page="settings">
+                        <i>⚙️</i> Settings
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <div class="toggle-container">
+                        <span>Dark Mode</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="darkModeToggle" checked aria-label="Toggle dark mode">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </li>
             </ul>
         </aside>
 
@@ -66,36 +89,72 @@
                     <div class="stats-card">
                         <h3>Total Clients</h3>
                         <div class="stats-value" id="totalClients">0</div>
+                        <div class="stats-change" id="clientChange">+0 (0%)</div>
                     </div>
                     <div class="stats-card">
                         <h3>Monthly Revenue</h3>
                         <div class="stats-value" id="monthlyRevenue">$0</div>
+                        <div class="stats-change" id="revenueChange">+$0 (0%)</div>
                     </div>
                     <div class="stats-card">
                         <h3>Paid This Month</h3>
                         <div class="stats-value" id="paidThisMonth">0</div>
+                        <div class="stats-change" id="paidChange">+0 (0%)</div>
                     </div>
                     <div class="stats-card">
                         <h3>Pending Payments</h3>
                         <div class="stats-value" id="pendingPayments">0</div>
+                        <div class="stats-change negative" id="pendingChange">+0 (0%)</div>
                     </div>
                 </div>
 
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Client</th>
-                                <th>Next Payment</th>
-                                <th>Package</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="clientsTable">
-                            <!-- Clients will be loaded here -->
-                        </tbody>
-                    </table>
+                <div class="tabs">
+                    <div class="tab active" data-tab="recent-activity">Recent Activity</div>
+                    <div class="tab" data-tab="due-payments">Due Payments</div>
+                    <div class="tab" data-tab="revenue-trend">Revenue Trend</div>
+                </div>
+
+                <div class="tab-content active" id="recent-activity">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Date</th>
+                                    <th>Activity</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activityTable">
+                                <!-- Activity will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="due-payments">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Due Date</th>
+                                    <th>Package</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="duePaymentsTable">
+                                <!-- Due payments will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="revenue-trend">
+                    <canvas id="revenueChart" height="300"></canvas>
                 </div>
             </div>
 
@@ -105,11 +164,21 @@
                     <h1 class="page-title">Client Management</h1>
                     <div class="button-group">
                         <button class="button" id="addClientBtn">Add New Client</button>
+                        <button class="button-secondary" id="exportClientsBtn">Export Clients</button>
                     </div>
                 </div>
 
                 <div class="search-filter">
                     <input type="text" id="clientSearch" placeholder="Search clients...">
+                    <div class="status-filter">
+                        <label for="clientStatusFilter">Status:</label>
+                        <select id="clientStatusFilter">
+                            <option value="all">All</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="overdue">Overdue</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="table-responsive">
@@ -125,7 +194,7 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="clientsTableFull">
+                        <tbody id="clientsTable">
                             <!-- Clients will be loaded here -->
                         </tbody>
                     </table>
@@ -138,6 +207,36 @@
                     <h1 class="page-title">Payment Management</h1>
                     <div class="button-group">
                         <button class="button" id="recordPaymentBtn">Record Payment</button>
+                        <button class="button-secondary" id="exportPaymentsBtn">Export Payments</button>
+                    </div>
+                </div>
+
+                <div class="search-filter">
+                    <input type="text" id="paymentSearch" placeholder="Search payments...">
+                    <div class="status-filter">
+                        <label for="paymentStatusFilter">Status:</label>
+                        <select id="paymentStatusFilter">
+                            <option value="all">All</option>
+                            <option value="paid">Paid</option>
+                            <option value="unpaid">Unpaid</option>
+                            <option value="partial">Partial</option>
+                            <option value="overdue">Overdue</option>
+                        </select>
+                    </div>
+                    <div class="status-filter">
+                        <label for="paymentDateFilter">Date Range:</label>
+                        <select id="paymentDateFilter">
+                            <option value="all">All Time</option>
+                            <option value="this-month">This Month</option>
+                            <option value="last-month">Last Month</option>
+                            <option value="this-year">This Year</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+                    <div id="customDateRange" style="display: none; gap: 10px; align-items: center;">
+                        <input type="date" id="customDateFrom">
+                        <span>to</span>
+                        <input type="date" id="customDateTo">
                     </div>
                 </div>
 
@@ -147,7 +246,9 @@
                             <tr>
                                 <th>Client</th>
                                 <th>Date</th>
-                                <th>Amount</th>
+                                <th>Package</th>
+                                <th>Amount Due</th>
+                                <th>Amount Paid</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -163,9 +264,252 @@
             <div class="page" id="calendar-page" style="display: none;">
                 <div class="page-header">
                     <h1 class="page-title">Payment Calendar</h1>
+                    <div class="button-group">
+                        <button class="button" id="prevMonthBtn">Previous</button>
+                        <button class="button" id="nextMonthBtn">Next</button>
+                        <button class="button-secondary" id="todayBtn">Today</button>
+                    </div>
+                    <h2 id="calendarMonthYear" style="margin-top: 10px;"></h2>
                 </div>
+
                 <div id="calendarContainer">
                     <!-- Calendar will be generated here -->
+                </div>
+            </div>
+
+            <!-- Reports Page -->
+            <div class="page" id="reports-page" style="display: none;">
+                <div class="page-header">
+                    <h1 class="page-title">Reports</h1>
+                    <div class="button-group">
+                        <button class="button" id="generateReportBtn">Generate Report</button>
+                        <button class="button-secondary" id="printReportBtn">Print</button>
+                    </div>
+                </div>
+
+                <div class="tabs">
+                    <div class="tab active" data-tab="financial-reports">Financial Reports</div>
+                    <div class="tab" data-tab="client-reports">Client Reports</div>
+                    <div class="tab" data-tab="payment-reports">Payment Reports</div>
+                </div>
+
+                <div class="tab-content active" id="financial-reports">
+                    <div class="stats-grid">
+                        <div class="stats-card">
+                            <h3>Annual Revenue</h3>
+                            <div class="stats-value" id="annualRevenue">$0</div>
+                            <canvas id="annualRevenueChart" height="150"></canvas>
+                        </div>
+                        <div class="stats-card">
+                            <h3>Payment Status</h3>
+                            <canvas id="paymentStatusChart" height="150"></canvas>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th>Expected Revenue</th>
+                                    <th>Actual Revenue</th>
+                                    <th>Difference</th>
+                                    <th>Paid Clients</th>
+                                    <th>Unpaid Clients</th>
+                                </tr>
+                            </thead>
+                            <tbody id="financialReportsTable">
+                                <!-- Financial reports will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="client-reports">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Start Date</th>
+                                    <th>Total Paid</th>
+                                    <th>Last Payment</th>
+                                    <th>Status</th>
+                                    <th>Days Since Last Payment</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientReportsTable">
+                                <!-- Client reports will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="payment-reports">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date Range</th>
+                                    <th>Total Payments</th>
+                                    <th>Total Amount</th>
+                                    <th>Average Payment</th>
+                                    <th>On-Time Payments</th>
+                                    <th>Late Payments</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paymentReportsTable">
+                                <!-- Payment reports will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div class="page" id="settings-page" style="display: none;">
+                <div class="page-header">
+                    <h1 class="page-title">System Settings</h1>
+                </div>
+
+                <div class="tabs">
+                    <div class="tab active" data-tab="general-settings">General</div>
+                    <div class="tab" data-tab="payment-settings">Payments</div>
+                    <div class="tab" data-tab="user-settings">Users</div>
+                    <div class="tab" data-tab="backup-settings">Backup</div>
+                </div>
+
+                <div class="tab-content active" id="general-settings">
+                    <form id="generalSettingsForm">
+                        <div class="form-group">
+                            <div class="form-control">
+                                <label for="systemName">System Name</label>
+                                <input type="text" id="systemName" value="LinkedIn Rent Tracker">
+                            </div>
+                            <div class="form-control">
+                                <label for="defaultCurrency">Default Currency</label>
+                                <select id="defaultCurrency">
+                                    <option value="USD">US Dollar ($)</option>
+                                    <option value="EUR">Euro (€)</option>
+                                    <option value="GBP">British Pound (£)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="form-control">
+                                <label for="dateFormat">Date Format</label>
+                                <select id="dateFormat">
+                                    <option value="mm/dd/yyyy">MM/DD/YYYY</option>
+                                    <option value="dd/mm/yyyy">DD/MM/YYYY</option>
+                                    <option value="yyyy-mm-dd">YYYY-MM-DD</option>
+                                </select>
+                            </div>
+                            <div class="form-control">
+                                <label for="timezone">Timezone</label>
+                                <select id="timezone">
+                                    <option value="UTC">UTC</option>
+                                    <option value="EST">Eastern Time (EST)</option>
+                                    <option value="PST">Pacific Time (PST)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="button">Save Settings</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="tab-content" id="payment-settings">
+                    <form id="paymentSettingsForm">
+                        <div class="form-group">
+                            <div class="form-control">
+                                <label for="paymentTerms">Default Payment Terms</label>
+                                <select id="paymentTerms">
+                                    <option value="net30">Net 30 Days</option>
+                                    <option value="net15">Net 15 Days</option>
+                                    <option value="due-on-receipt">Due on Receipt</option>
+                                </select>
+                            </div>
+                            <div class="form-control">
+                                <label for="lateFee">Late Fee (%)</label>
+                                <input type="number" id="lateFee" value="5" min="0" max="20">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="form-control">
+                                <label for="paymentMethods">Accepted Payment Methods</label>
+                                <div class="checkbox-container">
+                                    <input type="checkbox" id="paypal" checked>
+                                    <label for="paypal">PayPal</label>
+                                </div>
+                                <div class="checkbox-container">
+                                    <input type="checkbox" id="bankTransfer" checked>
+                                    <label for="bankTransfer">Bank Transfer</label>
+                                </div>
+                                <div class="checkbox-container">
+                                    <input type="checkbox" id="creditCard">
+                                    <label for="creditCard">Credit Card</label>
+                                </div>
+                            </div>
+                            <div class="form-control">
+                                <label for="invoiceTemplate">Invoice Template</label>
+                                <select id="invoiceTemplate">
+                                    <option value="simple">Simple</option>
+                                    <option value="professional">Professional</option>
+                                    <option value="modern">Modern</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="form-control">
+                                <label for="packageOptions">Package Options (one per line)</label>
+                                <textarea id="packageOptions" rows="4" placeholder="100-200 Connections ($20/month)&#10;300-800 Connections ($40/month)&#10;900+ Connections ($60/month)"></textarea>
+                            </div>
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="button">Save Settings</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="tab-content" id="user-settings">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Last Login</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTable">
+                                <!-- Users will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="button-group" style="margin-top: 20px;">
+                        <button class="button" id="addUserBtn">Add New User</button>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="backup-settings">
+                    <div class="stats-card">
+                        <h3>System Backup</h3>
+                        <p>Last backup: <span id="lastBackupDate">Never</span></p>
+                        <div class="button-group">
+                            <button class="button" id="backupNowBtn">Backup Now</button>
+                            <button class="button-secondary" id="restoreBackupBtn">Restore Backup</button>
+                        </div>
+                    </div>
+                    <div class="stats-card" style="margin-top: 20px;">
+                        <h3>Data Export</h3>
+                        <div class="button-group">
+                            <button class="button" id="exportAllDataBtn">Export All Data</button>
+                            <button class="button-secondary" id="importDataBtn">Import Data</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -185,13 +529,44 @@
                         <input type="text" id="modalClientName" required>
                     </div>
                     <div class="form-control">
+                        <label for="modalClientEmail">Email</label>
+                        <input type="email" id="modalClientEmail">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="form-control">
+                        <label for="modalClientStartDate">Start Date*</label>
+                        <input type="date" id="modalClientStartDate" required>
+                    </div>
+                    <div class="form-control">
                         <label for="modalClientPackage">Package*</label>
                         <select id="modalClientPackage" required>
                             <option value="">Select Package</option>
-                            <option value="100-200 Connections ($20/month)">100-200 Connections ($20/month)</option>
-                            <option value="300-800 Connections ($40/month)">300-800 Connections ($40/month)</option>
-                            <option value="900+ Connections ($60/month)">900+ Connections ($60/month)</option>
                         </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="form-control">
+                        <label for="modalPaymentFrequency">Payment Frequency*</label>
+                        <select id="modalPaymentFrequency" required>
+                            <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label for="modalPaymentMethod">Payment Method</label>
+                        <select id="modalPaymentMethod">
+                            <option value="paypal">PayPal</option>
+                            <option value="bank">Bank Transfer</option>
+                            <option value="credit">Credit Card</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="form-control">
+                        <label for="modalClientNotes">Notes</label>
+                        <textarea id="modalClientNotes" rows="3"></textarea>
                     </div>
                 </div>
                 <div class="button-group">
@@ -218,13 +593,188 @@
                         </select>
                     </div>
                     <div class="form-control">
+                        <label for="paymentDate">Payment Date*</label>
+                        <input type="date" id="paymentDate" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="form-control">
                         <label for="paymentAmount">Amount*</label>
                         <input type="number" id="paymentAmount" step="0.01" required>
+                    </div>
+                    <div class="form-control">
+                        <label for="paymentStatus">Status*</label>
+                        <select id="paymentStatus" required>
+                            <option value="paid">Paid</option>
+                            <option value="partial">Partial Payment</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="form-control">
+                        <label for="paymentMethod">Method*</label>
+                        <select id="paymentMethod" required>
+                            <option value="paypal">PayPal</option>
+                            <option value="bank">Bank Transfer</option>
+                            <option value="credit">Credit Card</option>
+                            <option value="cash">Cash</option>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label for="paymentReference">Reference</label>
+                        <input type="text" id="paymentReference">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="form-control">
+                        <label for="paymentNotes">Notes</label>
+                        <textarea id="paymentNotes" rows="3"></textarea>
                     </div>
                 </div>
                 <div class="button-group">
                     <button type="submit" class="button">Record Payment</button>
                     <button type="button" class="button-secondary" id="cancelPayment">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Export Data</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="form-group">
+                <div class="form-control">
+                    <label for="exportType">Export Type</label>
+                    <select id="exportType">
+                        <option value="clients">Clients</option>
+                        <option value="payments">Payments</option>
+                        <option value="all">All Data</option>
+                    </select>
+                </div>
+                <div class="form-control">
+                    <label for="exportFormat">Format</label>
+                    <select id="exportFormat">
+                        <option value="json">JSON</option>
+                        <option value="csv">CSV</option>
+                        <option value="excel">Excel</option>
+                    </select>
+                </div>
+            </div>
+            <textarea id="exportData" rows="10" style="width: 100%; margin-bottom: 15px;" readonly></textarea>
+            <div class="button-group">
+                <button id="copyBtn" class="button-success">Copy to Clipboard</button>
+                <button id="downloadExportBtn" class="button">Download</button>
+                <button id="closeExportBtn" class="button-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Import Data</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="form-group">
+                <div class="form-control">
+                    <label for="importType">Import Type</label>
+                    <select id="importType">
+                        <option value="clients">Clients</option>
+                        <option value="payments">Payments</option>
+                        <option value="all">All Data</option>
+                    </select>
+                </div>
+                <div class="form-control">
+                    <label for="importFormat">Format</label>
+                    <select id="importFormat">
+                        <option value="json">JSON</option>
+                        <option value="csv">CSV</option>
+                    </select>
+                </div>
+            </div>
+            <textarea id="importData" rows="10" style="width: 100%; margin-bottom: 15px;" placeholder="Paste your data here or..."></textarea>
+            <div class="button-group">
+                <button id="uploadImportBtn" class="button-secondary">Upload File</button>
+                <input type="file" id="fileImport" style="display: none;">
+            </div>
+            <div id="importError" class="alert alert-danger" style="display: none; margin-top: 15px;"></div>
+            <div class="button-group" style="margin-top: 15px;">
+                <button id="confirmImportBtn" class="button-success">Import Data</button>
+                <button id="cancelImportBtn" class="button-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Details Modal -->
+    <div id="paymentDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Payment Details</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div id="paymentDetailsContent">
+                <!-- Payment details will be loaded here -->
+            </div>
+            <div class="button-group" style="margin-top: 20px;">
+                <button id="printPaymentBtn" class="button">Print Receipt</button>
+                <button id="closePaymentDetailsBtn" class="button-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New User</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="userForm">
+                <div class="form-group">
+                    <div class="form-control">
+                        <label for="userName">Full Name*</label>
+                        <input type="text" id="userName" required>
+                    </div>
+                    <div class="form-control">
+                        <label for="userEmail">Email*</label>
+                        <input type="email" id="userEmail" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="form-control">
+                        <label for="userRole">Role*</label>
+                        <select id="userRole" required>
+                            <option value="admin">Administrator</option>
+                            <option value="manager">Manager</option>
+                            <option value="viewer">Viewer</option>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label for="userStatus">Status*</label>
+                        <select id="userStatus" required>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="form-control">
+                        <label for="userPassword">Password*</label>
+                        <input type="password" id="userPassword" required minlength="8">
+                    </div>
+                    <div class="form-control">
+                        <label for="userConfirmPassword">Confirm Password*</label>
+                        <input type="password" id="userConfirmPassword" required minlength="8">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button type="submit" class="button">Save User</button>
+                    <button type="button" class="button-secondary" id="cancelAddUser">Cancel</button>
                 </div>
             </form>
         </div>
